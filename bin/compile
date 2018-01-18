@@ -1,0 +1,35 @@
+#!/bin/bash
+
+APP_DIR="$1"
+ENV_DIR="$3"
+
+# load required environment variables
+ROOT_DIR=$(<"$ENV_DIR/ROOT_DIR")
+
+if [[ -z $ROOT_DIR ]]; then
+    echo "Did you forget to set ROOT_DIR?"
+    exit 1
+fi
+
+# make sure we're in the root of the app dir
+cd "$APP_DIR"
+
+# create directory in which we create the new root
+TEMP_DIR="__root__"
+mkdir -p $TEMP_DIR
+
+# copy the contents of the specified root into the
+# the new root
+cp -a "$ROOT_DIR/." "$TEMP_DIR"
+
+# remove everything besides the new root
+shopt -s extglob
+rm -rf -- !($TEMP_DIR)
+
+# move everything out of the temp dir into
+# the actual root
+shopt -s dotglob nullglob
+mv __root__/* .
+
+# remove the temp dir
+rm -r $TEMP_DIR
