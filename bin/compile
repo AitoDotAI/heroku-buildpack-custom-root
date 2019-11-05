@@ -21,9 +21,11 @@ EXTRA_BUILD_DIR=$(mktemp -d /tmp/buildpack.XXXXXXXXX)
 # Make sure the directory exists (althought mktemp should create it)
 mkdir -p $EXTRA_BUILD_DIR
 
-echo "Using the additional build root directory ${EXTRA_BUILD_DIR}"
+RELATIVE_PATH_TO_EXTRA_BUILD_DIR=$(realpath --relative-to="${APP_DIR}" "${EXTRA_BUILD_DIR}")
 
-set -x
+echo "Using the additional build root directory ${EXTRA_BUILD_DIR}"
+echo "Relative path with regards to ${APP_DIR} is ${RELATIVE_PATH_TO_EXTRA_BUILD_DIR}"
+
 # copy all the files from current root into the temporary build root
 cp -a "${APP_DIR}/." "$EXTRA_BUILD_DIR"
 
@@ -44,7 +46,6 @@ mv ${TEMP_DIR}/* .
 rm -r $TEMP_DIR
 
 # Point all the relative paths in the node dependencies and our own build scripts to the new temp-folder
-
 # Our custom build files
 find . -type f -maxdepth 3 -name heroku-build.sh |
     grep -v node_modules |
@@ -52,10 +53,5 @@ find . -type f -maxdepth 3 -name heroku-build.sh |
     xargs perl -p -i -e "s%file:\.\./%${EXTRA_BUILD_DIR}/%s"
 
 # Node dependencies
-find $BUILD_DIR -maxdepth 2 -type f -name package.json -or -name yarn.lock |
-    xargs perl -p -i -e "s%file:\.\./%file:${EXTRA_BUILD_DIR}/%s"
-
-
-# List all the files we copied
-echo "Listing files under ${EXTRA_BUILD_DIR}"
-find $EXTRA_BUILD_DIR -type f 
+find . -maxdepth 2 -type f -name package.json -or -name yarn.lock |
+    xargs perl -p -i -e "s%file:\.\./%file:${RELATIVE_PATH_TO_EXTRA_BUILD_DIR}/%s"
