@@ -14,22 +14,32 @@ fi
 # make sure we're in the root of the app dir
 cd "$APP_DIR"
 
-# create directory in which we create the new root
 TEMP_DIR="__root__"
 mkdir -p $TEMP_DIR
 
+ADDITIONAL_BUILD_ROOT=$(mktemp -d /tmp/buildpack.XXXXXXXXX)
+# Make sure the directory exists (althought mktemp should create it)
+mkdir -p $ADDITIONAL_BUILD_ROOT
+
+# copy all the files from current root into the temporary build root
+cp -a "${ROOT_DIR}/." "$ADDITIONAL_BUILD_DIR"
+
 # copy the contents of the specified root into the
-# the new root
-cp -a "$ROOT_DIR/." "$TEMP_DIR"
+# the temp root
+cp -a "$ROOT_DIR/." "$TMP_DIR"
 
 # remove everything besides the new root
 shopt -s extglob
-rm -rf -- !($TEMP_DIR)
+rm -rf -- !($TMP_DIR)
 
 # move everything out of the temp dir into
 # the actual root
 shopt -s dotglob nullglob
-mv __root__/* .
+mv ${TMP_DIR}/* .
 
 # remove the temp dir
 rm -r $TEMP_DIR
+
+# Point all the relative paths in the node dependencies to the new temp-folder
+find $BUILD_DIR -maxdepth 2 -type f -name package.json -or -name yarn.lock |
+    perl -p -i -e "s%file:\.\./%file:${ADDITIONAL_BUIlD_ROOT}/%s"
