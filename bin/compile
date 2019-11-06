@@ -37,8 +37,8 @@ echo
 # Move all the other projects to the created temp directory, and leave only the
 # directory that was marked as the ROOT_DIR under APP_DIR
 #
-mv "${APP_DIR}/*" "$EXTRA_BUILD_DIR/."
-mv "${EXTRA_BUILD_DIR}/${ROOT_DIR}" "${APP_DIR}/."
+mv ${APP_DIR}/* ${EXTRA_BUILD_DIR}/.
+mv ${EXTRA_BUILD_DIR}/${ROOT_DIR}/* ${APP_DIR}/.
 
 # Finally point all the relative paths in the node dependencies and our own build scripts to the new temp-folder
 find . -maxdepth 2 -type f \( -name package.json -or -name yarn.lock \)  |
