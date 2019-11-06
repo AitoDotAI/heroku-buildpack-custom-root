@@ -14,44 +14,40 @@ fi
 # make sure we're in the root of the app dir
 cd "$APP_DIR"
 
-TEMP_DIR="__root__"
-mkdir -p $TEMP_DIR
-
+#
+# Create a real temporary directory to use as the root dir for dependant modules.
+# Using mktemp to make sure we don't use an existing dir and hence make the build
+# process behave unpredictably in the (unlikely) case.
+#
 EXTRA_BUILD_DIR=$(mktemp -d /tmp/buildpack.XXXXXXXXX)
-# Make sure the directory exists (althought mktemp should create it)
 mkdir -p $EXTRA_BUILD_DIR
 
+#
+# yarn.lock does not accept absolute paths to locked dependencies. If we don't convert
+# the path to relative, the consequent build will fail with "lockfile mismatch"
+# 
 RELATIVE_PATH_TO_EXTRA_BUILD_DIR=$(realpath --relative-to="${APP_DIR}" "${EXTRA_BUILD_DIR}")
 
-echo "Using the additional build root directory ${EXTRA_BUILD_DIR}"
+echo
+echo "Additional dependencies fetched from temp directory ${EXTRA_BUILD_DIR}"
 echo "Relative path with regards to ${APP_DIR} is ${RELATIVE_PATH_TO_EXTRA_BUILD_DIR}"
+echo
 
-# copy all the files from current root into the temporary build root
-cp -a "${APP_DIR}/." "$EXTRA_BUILD_DIR"
+#
+# Move all the other projects to the created temp directory, and leave only the
+# directory that was marked as the ROOT_DIR under APP_DIR
+#
+mv "${APP_DIR}/*" "$EXTRA_BUILD_DIR/."
+mv "${EXTRA_BUILD_DIR}/${ROOT_DIR}" "${APP_DIR}/."
 
-# copy the contents of the specified root into the
-# the temp root
-cp -a "$ROOT_DIR/." "$TEMP_DIR"
+# Finally point all the relative paths in the node dependencies and our own build scripts to the new temp-folder
+find . -maxdepth 2 -type f \( -name package.json -or -name yarn.lock \)  |
+    grep -v node_modules |
+    xargs perl -p -i -e "s%file:\.\./%file:${RELATIVE_PATH_TO_EXTRA_BUILD_DIR}/%s"
 
-# remove everything besides the new root
-shopt -s extglob
-rm -rf -- !($TEMP_DIR)
-
-# move everything out of the temp dir into
-# the actual root
-shopt -s dotglob nullglob
-mv ${TEMP_DIR}/* .
-
-# remove the temp dir
-rm -r $TEMP_DIR
-
-# Point all the relative paths in the node dependencies and our own build scripts to the new temp-folder
-# Our custom build files
-find . -type f -maxdepth 3 -name heroku-build.sh |
+# heroku-build.sh is used as the name for all scripts in the projects, handling the 'heroku-postbuild'-step.
+# This is custom to our own project.
+find . -maxdepth 3 -type f -name heroku-build.sh |
     grep -v node_modules |
     xargs grep -l 'file:../' |
     xargs perl -p -i -e "s%file:\.\./%${EXTRA_BUILD_DIR}/%s"
-
-# Node dependencies
-find . -maxdepth 2 -type f -name package.json -or -name yarn.lock |
-    xargs perl -p -i -e "s%file:\.\./%file:${RELATIVE_PATH_TO_EXTRA_BUILD_DIR}/%s"
