@@ -41,13 +41,24 @@ mv ${APP_DIR}/* ${EXTRA_BUILD_DIR}/.
 mv ${EXTRA_BUILD_DIR}/${ROOT_DIR}/* ${APP_DIR}/.
 
 # Finally point all the relative paths in the node dependencies and our own build scripts to the new temp-folder
-find . -maxdepth 2 -type f \( -name package.json -or -name yarn.lock \)  |
-    grep -v node_modules |
-    xargs perl -p -i -e "s%file:\.\./%file:${RELATIVE_PATH_TO_EXTRA_BUILD_DIR}/%s"
+_perl_replace="s%file:\.\./%file:${RELATIVE_PATH_TO_EXTRA_BUILD_DIR}/%s"
+for file in $(find . -maxdepth 2 -type f \( -name package.json -or -name yarn.lock \)  | grep -v node_modules | xargs grep -l 'file:..'); do
+    echo
+    echo "Replacing relative link in file"
+    echo -e "$file : \n\t"
+    perl -nle "print if ${_perl_replace}" $file
+    perl -p -i -e $_perl_replace $file
+    echo
+done
 
 # heroku-build.sh is used as the name for all scripts in the projects, handling the 'heroku-postbuild'-step.
 # This is custom to our own project.
-find . -maxdepth 3 -type f -name heroku-build.sh |
-    grep -v node_modules |
-    xargs grep -l 'file:../' |
-    xargs perl -p -i -e "s%file:\.\./%${EXTRA_BUILD_DIR}/%s"
+_perl_sh_replace="s%file:\.\./%${EXTRA_BUILD_DIR}/%s"
+for file in $(find . -maxdepth 3 -type f -name heroku-build.sh | grep -v node_modules | xargs grep -l 'file:../' ); do
+    echo
+    echo "Replacing relative link in file"
+    echo -e "$file : \n\t"
+    perl -nle "print if ${_perl_sh_replace}" $file
+    perl -p -i -e $_perl_sh_replace $file
+    echo
+done
