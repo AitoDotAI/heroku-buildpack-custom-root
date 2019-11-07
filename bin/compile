@@ -19,7 +19,7 @@ cd "$APP_DIR"
 # Using mktemp to make sure we don't use an existing dir and hence make the build
 # process behave unpredictably in the (unlikely) case.
 #
-EXTRA_BUILD_DIR=$(mktemp -d /tmp/buildpack.XXXXXXXXX)
+EXTRA_BUILD_DIR=$(mktemp -d ${APP_DIR}/.tmp.buildpack.XXXXXXXXX)
 mkdir -p $EXTRA_BUILD_DIR
 
 #
@@ -62,3 +62,10 @@ for file in $(find . -maxdepth 3 -type f -name heroku-build.sh | grep -v node_mo
     perl -p -i -e $_perl_sh_replace $file
     echo
 done
+
+#
+# Create a slugignore-file to avoid adding the tmp-dir contents to the
+#
+cat <<SLUGIGNORE >> $APP_DIR/.slugignore
+$(basename $EXTRA_BUILD_DIR)/
+SLUGIGNORE
