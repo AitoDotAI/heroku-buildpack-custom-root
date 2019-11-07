@@ -64,8 +64,10 @@ for file in $(find . -maxdepth 3 -type f -name heroku-build.sh | grep -v node_mo
 done
 
 #
-# Create a slugignore-file to avoid adding the tmp-dir contents to the
+# Create a slugpostclean-file to avoid adding the tmp-dir contents to the slug
+# The cleaning is handled by a later build-pack
+# https://github.com/AitoDotAI/heroku-buildpack-post-build-clean
 #
-cat <<SLUGIGNORE >> $APP_DIR/.slugignore
+cat <<SLUGPOSTCLEAN >> $APP_DIR/.slug-post-clean
 $(basename $EXTRA_BUILD_DIR)/
-SLUGIGNORE
+SLUGPOSTCLEAN
