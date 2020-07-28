@@ -33,3 +33,6 @@ mv __root__/* .
 
 # remove the temp dir
 rm -r $TEMP_DIR
+
+# move Procfile to root
+mv $PROCFILE_PATH .
