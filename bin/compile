@@ -7,6 +7,7 @@ ENV_DIR="$3"
 
 # load required environment variables
 ROOT_DIR=$(<"$ENV_DIR/ROOT_DIR")
+APP_NAME=$(<"$ENV_DIR/APP_NAME")
 PROCFILE_PATH="apps/${APP_NAME}/Procfile"
 
 env
