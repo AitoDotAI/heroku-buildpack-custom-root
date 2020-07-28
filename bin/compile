@@ -5,6 +5,7 @@ ENV_DIR="$3"
 
 # load required environment variables
 ROOT_DIR=$(<"$ENV_DIR/ROOT_DIR")
+PROCFILE_PATH="apps/${APP_NAME}/Procfile"
 
 if [[ -z $ROOT_DIR ]]; then
     echo "Did you forget to set ROOT_DIR?"
