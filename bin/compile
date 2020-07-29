@@ -9,7 +9,7 @@ ENV_DIR="$3"
 ROOT_DIR=$(<"$ENV_DIR/ROOT_DIR")
 APP_NAME=$(<"$ENV_DIR/APP_NAME")
 PROCFILE_PATH="apps/${APP_NAME}/Procfile"
-
+find .
 env
 
 if [[ -z $ROOT_DIR ]]; then
