@@ -9,7 +9,7 @@ ENV_DIR="$3"
 ROOT_DIR=$(<"$ENV_DIR/ROOT_DIR")
 APP_NAME=$(<"$ENV_DIR/APP_NAME")
 PROCFILE_PATH="apps/${APP_NAME}/Procfile"
-find .
+
 env
 
 if [[ -z $ROOT_DIR ]]; then
@@ -26,7 +26,7 @@ mkdir -p $TEMP_DIR
 
 # copy the contents of the specified root into the
 # the new root
-find .
+
 cp -a "$ROOT_DIR/." "$TEMP_DIR"
 
 # remove everything besides the new root
@@ -42,4 +42,5 @@ mv __root__/* .
 rm -r $TEMP_DIR
 
 # move Procfile to root
+find .
 mv $PROCFILE_PATH .
