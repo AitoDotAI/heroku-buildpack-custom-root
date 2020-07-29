@@ -26,6 +26,7 @@ mkdir -p $TEMP_DIR
 
 # copy the contents of the specified root into the
 # the new root
+find .
 cp -a "$ROOT_DIR/." "$TEMP_DIR"
 
 # remove everything besides the new root
