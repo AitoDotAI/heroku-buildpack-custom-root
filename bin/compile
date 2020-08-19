@@ -1,10 +1,16 @@
 #!/bin/bash
 
+set -x
+
 APP_DIR="$1"
 ENV_DIR="$3"
 
 # load required environment variables
 ROOT_DIR=$(<"$ENV_DIR/ROOT_DIR")
+APP_NAME=$(<"$ENV_DIR/APP_NAME")
+PROCFILE_PATH="apps/${APP_NAME}/Procfile"
+
+env
 
 if [[ -z $ROOT_DIR ]]; then
     echo "Did you forget to set ROOT_DIR?"
@@ -14,60 +20,26 @@ fi
 # make sure we're in the root of the app dir
 cd "$APP_DIR"
 
-#
-# Create a real temporary directory to use as the root dir for dependant modules.
-# Using mktemp to make sure we don't use an existing dir and hence make the build
-# process behave unpredictably in the (unlikely) case.
-#
-EXTRA_BUILD_DIR=$(mktemp -d ${APP_DIR}/.tmp.buildpack.XXXXXXXXX)
-mkdir -p $EXTRA_BUILD_DIR
+# create directory in which we create the new root
+TEMP_DIR="__root__"
+mkdir -p $TEMP_DIR
 
-#
-# yarn.lock does not accept absolute paths to locked dependencies. If we don't convert
-# the path to relative, the consequent build will fail with "lockfile mismatch"
-# 
-RELATIVE_PATH_TO_EXTRA_BUILD_DIR=$(realpath --relative-to="${APP_DIR}" "${EXTRA_BUILD_DIR}")
+# copy the contents of the specified root into the
+# the new root
 
-echo
-echo "Additional dependencies fetched from temp directory ${EXTRA_BUILD_DIR}"
-echo "Relative path with regards to ${APP_DIR} is ${RELATIVE_PATH_TO_EXTRA_BUILD_DIR}"
-echo
+cp -a "$ROOT_DIR/." "$TEMP_DIR"
 
-#
-# Move all the other projects to the created temp directory, and leave only the
-# directory that was marked as the ROOT_DIR under APP_DIR
-#
-mv ${APP_DIR}/* ${EXTRA_BUILD_DIR}/.
-mv ${EXTRA_BUILD_DIR}/${ROOT_DIR}/* ${APP_DIR}/.
+# remove everything besides the new root
+shopt -s extglob
+rm -rf -- !($TEMP_DIR)
 
-# Finally point all the relative paths in the node dependencies and our own build scripts to the new temp-folder
-_perl_replace="s%file:\.\./%file:${RELATIVE_PATH_TO_EXTRA_BUILD_DIR}/%s"
-for file in $(find . -maxdepth 2 -type f \( -name package.json -or -name yarn.lock \)  | grep -v node_modules | xargs grep -l 'file:..'); do
-    echo
-    echo "Replacing relative link in file"
-    echo -e "$file : \n\t"
-    perl -nle "print if ${_perl_replace}" $file
-    perl -p -i -e $_perl_replace $file
-    echo
-done
+# move everything out of the temp dir into
+# the actual root
+shopt -s dotglob nullglob
+mv __root__/* .
 
-# heroku-build.sh is used as the name for all scripts in the projects, handling the 'heroku-postbuild'-step.
-# This is custom to our own project.
-_perl_sh_replace="s%file:\.\./%${EXTRA_BUILD_DIR}/%s"
-for file in $(find . -maxdepth 3 -type f -name heroku-build.sh | grep -v node_modules | xargs grep -l 'file:../' ); do
-    echo
-    echo "Replacing relative link in file"
-    echo -e "$file : \n\t"
-    perl -nle "print if ${_perl_sh_replace}" $file
-    perl -p -i -e $_perl_sh_replace $file
-    echo
-done
+# remove the temp dir
+rm -r $TEMP_DIR
 
-#
-# Create a slugpostclean-file to avoid adding the tmp-dir contents to the slug
-# The cleaning is handled by a later build-pack
-# https://github.com/AitoDotAI/heroku-buildpack-post-build-clean
-#
-cat <<SLUGPOSTCLEAN >> $APP_DIR/.slug-post-clean
-$(basename $EXTRA_BUILD_DIR)/
-SLUGPOSTCLEAN
+# move Procfile to root
+mv $PROCFILE_PATH .
