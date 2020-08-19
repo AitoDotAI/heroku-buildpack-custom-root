@@ -20,27 +20,34 @@ fi
 # make sure we're in the root of the app dir
 cd "$APP_DIR"
 
-# create directory in which we create the new root
-TEMP_DIR="__root__"
-mkdir -p $TEMP_DIR
+#
+# Create a real temporary directory to use as the root dir for dependant modules.
+# Using mktemp to make sure we don't use an existing dir and hence make the build
+# process behave unpredictably in the (unlikely) case.
+#
+EXTRA_BUILD_DIR=$(mktemp -d ${APP_DIR}/.tmp.buildpack.XXXXXXXXX)
+mkdir -p $EXTRA_BUILD_DIR
 
 # copy the contents of the specified root into the
 # the new root
 
 cp -a "$ROOT_DIR/." "$TEMP_DIR"
 
-# remove everything besides the new root
-shopt -s extglob
-rm -rf -- !($TEMP_DIR)
 
-# move everything out of the temp dir into
-# the actual root
-shopt -s dotglob nullglob
-mv __root__/* .
+echo
+echo "Additional dependencies fetched from temp directory ${EXTRA_BUILD_DIR}"
+echo "Relative path with regards to ${APP_DIR} is ${RELATIVE_PATH_TO_EXTRA_BUILD_DIR}"
+echo
+
+#
+# Move all the other projects to the created temp directory, and leave only the
+# directory that was marked as the ROOT_DIR under APP_DIR
+#
+mv ${APP_DIR}/* ${EXTRA_BUILD_DIR}/.
+mv ${EXTRA_BUILD_DIR}/${ROOT_DIR}/* ${APP_DIR}/.
 
 # remove the temp dir
 rm -r $TEMP_DIR
 
 # move Procfile to root
-find .
 mv $PROCFILE_PATH .
